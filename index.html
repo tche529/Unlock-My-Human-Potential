@@ -1,0 +1,1793 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luminea - AI驱动的情绪支持系统</title>
+    <style>
+        :root {
+            /* 星空色系 */
+            --primary-color: #4a5dff;
+            --secondary-color: #7b5dff;
+            --background-color: #0a1128;
+            --card-background: rgba(18, 30, 66, 0.85);
+            --text-color: #e1e6ff;
+            --text-secondary: #a8b0cf;
+            --highlight-color: #6e7eff;
+            
+            /* 情绪色调 */
+            --calm-color: #f5cb5c;
+            --anxiety-color: #5c8df5;
+            --happy-color: #ffbb33;
+            --sad-color: #7a92e0;
+            
+            --shadow-color: rgba(0, 0, 0, 0.25);
+            --card-glow: 0 0 15px rgba(74, 93, 255, 0.2);
+            --transition-duration: 0.8s;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            transition: background-color var(--transition-duration), color var(--transition-duration);
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            overflow-x: hidden;
+            transition: background-color var(--transition-duration);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 414px;
+            margin: 0 auto;
+            height: 100vh;
+            overflow-y: auto;
+            position: relative;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-color) transparent;
+        }
+
+        .container::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .container::-webkit-scrollbar-thumb {
+            background-color: var(--primary-color);
+            border-radius: 10px;
+        }
+
+        header {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: rgba(10, 17, 40, 0.7);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo h1 {
+            font-size: 24px;
+            font-weight: 600;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .language-switcher {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 5px 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            border: none;
+            color: var(--text-color);
+            font-size: 14px;
+        }
+
+        .language-switcher:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .tab-container {
+            display: flex;
+            justify-content: space-around;
+            margin: 10px 20px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 5px;
+        }
+
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            position: relative;
+            opacity: 0.7;
+            font-size: 15px;
+            border-radius: 8px;
+            flex: 1;
+            text-align: center;
+        }
+
+        .tab.active {
+            opacity: 1;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .content {
+            display: none;
+            padding: 10px 20px;
+        }
+
+        .content.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+
+        .card {
+            background-color: var(--card-background);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--card-glow);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s, background-color var(--transition-duration);
+            backdrop-filter: blur(5px);
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(74, 93, 255, 0.3);
+        }
+
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            color: var(--text-color);
+        }
+
+        .card h2 .icon {
+            margin-right: 8px;
+            font-size: 20px;
+        }
+
+        .emotion-cloud {
+            width: 100%;
+            height: 220px;
+            margin: 10px 0 20px;
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        canvas {
+            border-radius: 12px;
+        }
+
+        .emotion-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            padding: 15px;
+            border-radius: 12px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .emotion-level {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .emotion-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .biometric-data {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        .biometric-item {
+            text-align: center;
+            flex: 1;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            margin: 0 5px;
+        }
+
+        .biometric-item .value {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .biometric-item .label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .intervention-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .intervention-option {
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .intervention-option:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: scale(1.02);
+        }
+
+        .intervention-option .icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .intervention-option .title {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .chart-container {
+            height: 200px;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .time-selector {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 15px;
+        }
+
+        .time-option {
+            padding: 6px 12px;
+            font-size: 13px;
+            border-radius: 20px;
+            background-color: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+        }
+
+        .time-option.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .settings-list {
+            list-style: none;
+        }
+
+        .settings-item {
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .settings-item .title {
+            font-weight: 500;
+        }
+
+        .settings-item .description {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .toggle {
+            position: relative;
+            width: 50px;
+            height: 28px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .toggle.active {
+            background-color: var(--primary-color);
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background-color: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+
+        .toggle.active::after {
+            transform: translateX(22px);
+        }
+
+        /* 星空背景 */
+        .starry-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .star {
+            position: absolute;
+            background-color: #fff;
+            border-radius: 50%;
+            opacity: 0;
+            animation: twinkling 5s infinite;
+        }
+
+        .shooting-star {
+            position: absolute;
+            width: 100px;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.8), transparent);
+            transform: rotate(45deg);
+            animation: shootingStar 10s linear infinite;
+            opacity: 0;
+        }
+
+        @keyframes twinkling {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 0.8; }
+        }
+
+        @keyframes shootingStar {
+            0% { 
+                transform: translateX(-100px) translateY(-100px) rotate(45deg);
+                opacity: 0;
+            }
+            5% { opacity: 1; }
+            25% {
+                transform: translateX(calc(100vw + 100px)) translateY(calc(100vh + 100px)) rotate(45deg);
+                opacity: 0;
+            }
+            100% { opacity: 0; }
+        }
+
+        .breathing-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.5;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes breathing {
+            0% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.05); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 0.3; }
+        }
+
+        .breathing-circle {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--primary-color) 0%, transparent 70%);
+            animation: breathing 6s infinite ease-in-out;
+        }
+
+        .emotion-alert {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 25px;
+            background-color: rgba(18, 30, 66, 0.95);
+            color: white;
+            border-radius: 10px;
+            display: none;
+            align-items: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .emotion-alert .icon {
+            margin-right: 10px;
+            font-size: 20px;
+        }
+
+        .emotion-alert.show {
+            display: flex;
+            animation: slideUp 0.5s forwards;
+        }
+
+        @keyframes slideUp {
+            from { transform: translate(-50%, 50px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+
+        .voice-interaction {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            z-index: 10;
+            transition: transform 0.3s, background-color 0.3s;
+        }
+
+        .voice-interaction:hover {
+            transform: scale(1.05);
+            background-color: var(--secondary-color);
+        }
+
+        .voice-interaction .icon {
+            color: white;
+            font-size: 24px;
+        }
+
+        .voice-active {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 200px;
+            background-color: var(--card-background);
+            box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.2);
+            border-radius: 20px 20px 0 0;
+            padding: 20px;
+            display: none;
+            z-index: 20;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .voice-active.show {
+            display: block;
+            animation: slideUpVoice 0.5s forwards;
+        }
+
+        @keyframes slideUpVoice {
+            from { transform: translateY(200px); }
+            to { transform: translateY(0); }
+        }
+
+        .voice-visualization {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 80px;
+            margin: 20px 0;
+        }
+
+        .voice-bar {
+            width: 4px;
+            height: 20px;
+            background-color: var(--primary-color);
+            margin: 0 3px;
+            border-radius: 2px;
+        }
+
+        .voice-text {
+            text-align: center;
+            font-size: 16px;
+            margin-top: 20px;
+            color: var(--text-color);
+        }
+
+        .close-voice {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0.7;
+        }
+
+        /* 模态框样式 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            width: 85%;
+            max-width: 400px;
+            background-color: var(--card-background);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transform: translateY(20px);
+            transition: transform 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .modal.show .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--text-color);
+        }
+
+        .modal-text {
+            margin-bottom: 25px;
+            line-height: 1.5;
+            color: var(--text-secondary);
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-secondary {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        /* 语言相关样式 */
+        [data-lang="en"] {
+            display: none;
+        }
+
+        body.lang-en [data-lang="zh"] {
+            display: none;
+        }
+
+        body.lang-en [data-lang="en"] {
+            display: block;
+        }
+
+        /* 对于内联元素 */
+        span[data-lang="en"] {
+            display: none;
+        }
+
+        body.lang-en span[data-lang="zh"] {
+            display: none;
+        }
+
+        body.lang-en span[data-lang="en"] {
+            display: inline;
+        }
+
+        /* 对于flex元素 */
+        .flex-lang[data-lang="en"] {
+            display: none;
+        }
+
+        body.lang-en .flex-lang[data-lang="zh"] {
+            display: none;
+        }
+
+        body.lang-en .flex-lang[data-lang="en"] {
+            display: flex;
+        }
+    </style>
+</head>
+<body>
+    <!-- 星空背景 -->
+    <div class="starry-background" id="starryBackground"></div>
+    <div class="breathing-background" id="breathingBackground"></div>
+    
+    <div class="container">
+        <header>
+            <div class="logo">
+                <h1>Luminea</h1>
+            </div>
+            <button class="language-switcher" id="languageSwitcher">
+                <span data-lang="zh">EN</span>
+                <span data-lang="en">中文</span>
+            </button>
+        </header>
+
+        <div class="tab-container">
+            <div class="tab active" data-tab="emotion">
+                <span data-lang="zh">情绪监测</span>
+                <span data-lang="en">Emotion</span>
+            </div>
+            <div class="tab" data-tab="intervention">
+                <span data-lang="zh">干预措施</span>
+                <span data-lang="en">Intervention</span>
+            </div>
+            <div class="tab" data-tab="data">
+                <span data-lang="zh">数据分析</span>
+                <span data-lang="en">Data</span>
+            </div>
+            <div class="tab" data-tab="settings">
+                <span data-lang="zh">设置</span>
+                <span data-lang="en">Settings</span>
+            </div>
+        </div>
+
+        <!-- 情绪监测 -->
+        <div class="content active" id="emotion">
+            <div class="card">
+                <h2><span class="icon">🌟</span> 
+                    <span data-lang="zh">情绪星云</span>
+                    <span data-lang="en">Emotion Cloud</span>
+                </h2>
+                <div class="emotion-cloud">
+                    <canvas id="emotionCloudCanvas"></canvas>
+                </div>
+                <div class="emotion-status" id="emotionStatusContainer">
+                    <div>
+                        <div class="emotion-level" id="emotionLevel">
+                            <span data-lang="zh">平静</span>
+                            <span data-lang="en">Calm</span>
+                        </div>
+                        <div class="emotion-description">
+                            <span data-lang="zh">心率和皮电反应稳定</span>
+                            <span data-lang="en">Heart rate and skin response stable</span>
+                        </div>
+                    </div>
+                    <div id="emotionScore">78</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><span class="icon">📊</span> 
+                    <span data-lang="zh">生物指标</span>
+                    <span data-lang="en">Biometrics</span>
+                </h2>
+                <div class="biometric-data">
+                    <div class="biometric-item">
+                        <div class="value" id="heartRate">72</div>
+                        <div class="label">
+                            <span data-lang="zh">心率</span>
+                            <span data-lang="en">Heart Rate</span>
+                        </div>
+                    </div>
+                    <div class="biometric-item">
+                        <div class="value" id="sleepQuality">85%</div>
+                        <div class="label">
+                            <span data-lang="zh">睡眠质量</span>
+                            <span data-lang="en">Sleep Quality</span>
+                        </div>
+                    </div>
+                    <div class="biometric-item">
+                        <div class="value" id="stressLevel">
+                            <span data-lang="zh">中</span>
+                            <span data-lang="en">Mid</span>
+                        </div>
+                        <div class="label">
+                            <span data-lang="zh">压力水平</span>
+                            <span data-lang="en">Stress Level</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 干预措施 -->
+        <div class="content" id="intervention">
+            <div class="card">
+                <h2><span class="icon">🧘</span> 
+                    <span data-lang="zh">个性化支持</span>
+                    <span data-lang="en">Personalized Support</span>
+                </h2>
+                <p>
+                    <span data-lang="zh">选择适合您当前情绪状态的干预措施</span>
+                    <span data-lang="en">Choose interventions suitable for your current emotional state</span>
+                </p>
+                <div class="intervention-options">
+                    <div class="intervention-option" id="breathingExercise">
+                        <div class="icon">💨</div>
+                        <div class="title">
+                            <span data-lang="zh">呼吸练习</span>
+                            <span data-lang="en">Breathing</span>
+                        </div>
+                    </div>
+                    <div class="intervention-option" id="guidedMeditation">
+                        <div class="icon">🧠</div>
+                        <div class="title">
+                            <span data-lang="zh">引导冥想</span>
+                            <span data-lang="en">Meditation</span>
+                        </div>
+                    </div>
+                    <div class="intervention-option" id="journaling">
+                        <div class="icon">📝</div>
+                        <div class="title">
+                            <span data-lang="zh">情绪日记</span>
+                            <span data-lang="en">Journal</span>
+                        </div>
+                    </div>
+                    <div class="intervention-option" id="positiveAffirmation">
+                        <div class="icon">💬</div>
+                        <div class="title">
+                            <span data-lang="zh">积极肯定</span>
+                            <span data-lang="en">Affirmation</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><span class="icon">⚙️</span> 
+                    <span data-lang="zh">干预设置</span>
+                    <span data-lang="en">Intervention Settings</span>
+                </h2>
+                <div class="settings-list">
+                    <div class="settings-item">
+                        <div>
+                            <div class="title">
+                                <span data-lang="zh">触觉反馈</span>
+                                <span data-lang="en">Haptic Feedback</span>
+                            </div>
+                            <div class="description">
+                                <span data-lang="zh">当检测到压力升高时触发震动</span>
+                                <span data-lang="en">Trigger vibration when stress increases</span>
+                            </div>
+                        </div>
+                        <div class="toggle active" id="hapticsToggle"></div>
+                    </div>
+                    <div class="settings-item">
+                        <div>
+                            <div class="title">
+                                <span data-lang="zh">自动干预</span>
+                                <span data-lang="en">Auto Intervention</span>
+                            </div>
+                            <div class="description">
+                                <span data-lang="zh">自动启动适合当前情绪的干预措施</span>
+                                <span data-lang="en">Automatically start suitable interventions</span>
+                            </div>
+                        </div>
+                        <div class="toggle" id="autoInterventionToggle"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 数据可视化 -->
+        <div class="content" id="data">
+            <div class="card">
+                <h2><span class="icon">📈</span> 
+                    <span data-lang="zh">情绪趋势</span>
+                    <span data-lang="en">Emotion Trends</span>
+                </h2>
+                <div class="time-selector">
+                    <div class="time-option" data-period="day">
+                        <span data-lang="zh">今天</span>
+                        <span data-lang="en">Today</span>
+                    </div>
+                    <div class="time-option active" data-period="week">
+                        <span data-lang="zh">本周</span>
+                        <span data-lang="en">Week</span>
+                    </div>
+                    <div class="time-option" data-period="month">
+                        <span data-lang="zh">本月</span>
+                        <span data-lang="en">Month</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="emotionTrendChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><span class="icon">🔄</span> 
+                    <span data-lang="zh">情绪触发因素</span>
+                    <span data-lang="en">Emotion Triggers</span>
+                </h2>
+                <p>
+                    <span data-lang="zh">AI分析的可能情绪触发因素</span>
+                    <span data-lang="en">AI analyzed potential emotion triggers</span>
+                </p>
+                <ul class="settings-list">
+                    <div class="settings-item">
+                        <div>
+                            <div class="title">
+                                <span data-lang="zh">工作压力</span>
+                                <span data-lang="en">Work Pressure</span>
+                            </div>
+                            <div class="description">
+                                <span data-lang="zh">在工作日下午3点至6点间显著</span>
+                                <span data-lang="en">Significant between 3-6pm on weekdays</span>
+                            </div>
+                        </div>
+                        <div>45%</div>
+                    </div>
+                    <div class="settings-item">
+                        <div>
+                            <div class="title">
+                                <span data-lang="zh">睡眠不足</span>
+                                <span data-lang="en">Sleep Deficit</span>
+                            </div>
+                            <div class="description">
+                                <span data-lang="zh">睡眠时间低于6小时的日子</span>
+                                <span data-lang="en">Days with less than 6 hours of sleep</span>
+                            </div>
+                            </div>
+                            <div>30%</div>
+                        </div>
+                        <div class="settings-item">
+                            <div>
+                                <div class="title">
+                                    <span data-lang="zh">社交活动</span>
+                                    <span data-lang="en">Social Activities</span>
+                                </div>
+                                <div class="description">
+                                    <span data-lang="zh">群体社交活动后情绪提升</span>
+                                    <span data-lang="en">Mood improvement after group social activities</span>
+                                </div>
+                            </div>
+                            <div>25%</div>
+                        </div>
+                    </ul>
+                </div>
+            </div>
+    
+            <!-- 设置 -->
+            <div class="content" id="settings">
+                <div class="card">
+                    <h2><span class="icon">🔒</span> 
+                        <span data-lang="zh">隐私与安全</span>
+                        <span data-lang="en">Privacy & Security</span>
+                    </h2>
+                    <p style="margin-bottom: 15px; color: var(--text-secondary);">
+                        <span data-lang="zh">Luminea 采用数据边缘化和端到端加密，类似于 Apple iCloud，确保用户数据安全。</span>
+                        <span data-lang="en">Luminea uses edge computing and end-to-end encryption, similar to Apple iCloud, ensuring your data security.</span>
+                    </p>
+                    <div class="settings-list">
+                        <div class="settings-item">
+                            <div>
+                                <div class="title">
+                                    <span data-lang="zh">边缘计算</span>
+                                    <span data-lang="en">Edge Computing</span>
+                                </div>
+                                <div class="description">
+                                    <span data-lang="zh">在设备本地处理所有数据</span>
+                                    <span data-lang="en">Process all data locally on device</span>
+                                </div>
+                            </div>
+                            <div class="toggle active" id="edgeComputingToggle"></div>
+                        </div>
+                        <div class="settings-item">
+                            <div>
+                                <div class="title">
+                                    <span data-lang="zh">数据加密</span>
+                                    <span data-lang="en">Data Encryption</span>
+                                </div>
+                                <div class="description">
+                                    <span data-lang="zh">使用端到端加密保护您的数据</span>
+                                    <span data-lang="en">Use end-to-end encryption for your data</span>
+                                </div>
+                            </div>
+                            <div class="toggle active" id="encryptionToggle"></div>
+                        </div>
+                    </div>
+                </div>
+    
+                <div class="card">
+                    <h2><span class="icon">🌐</span> 
+                        <span data-lang="zh">应用设置</span>
+                        <span data-lang="en">App Settings</span>
+                    </h2>
+                    <div class="settings-list">
+                        <div class="settings-item">
+                            <div>
+                                <div class="title">
+                                    <span data-lang="zh">离线模式</span>
+                                    <span data-lang="en">Offline Mode</span>
+                                </div>
+                                <div class="description">
+                                    <span data-lang="zh">在无网络环境下持续提供支持</span>
+                                    <span data-lang="en">Continue providing support without internet</span>
+                                </div>
+                            </div>
+                            <div class="toggle active" id="offlineModeToggle"></div>
+                        </div>
+                        <div class="settings-item">
+                            <div>
+                                <div class="title">
+                                    <span data-lang="zh">手表同步</span>
+                                    <span data-lang="en">Watch Sync</span>
+                                </div>
+                                <div class="description">
+                                    <span data-lang="zh">与智能手表保持数据同步</span>
+                                    <span data-lang="en">Keep data synchronized with smartwatch</span>
+                                </div>
+                            </div>
+                            <div class="toggle active" id="watchSyncToggle"></div>
+                        </div>
+                        <div class="settings-item" id="languageSelector">
+                            <div>
+                                <div class="title">
+                                    <span data-lang="zh">语言</span>
+                                    <span data-lang="en">Language</span>
+                                </div>
+                                <div class="description">
+                                    <span data-lang="zh">应用界面语言设置</span>
+                                    <span data-lang="en">App interface language setting</span>
+                                </div>
+                            </div>
+                            <div>
+                                <span data-lang="zh">简体中文</span>
+                                <span data-lang="en">English</span>
+                            </div>
+                        </div>
+                        <div class="settings-item" id="healthDataSync">
+                            <div>
+                                <div class="title">
+                                    <span data-lang="zh">健康数据同步</span>
+                                    <span data-lang="en">Health Data Sync</span>
+                                </div>
+                                <div class="description">
+                                    <span data-lang="zh">与 Apple 健康 App 同步数据</span>
+                                    <span data-lang="en">Sync data with Apple Health app</span>
+                                </div>
+                            </div>
+                            <div class="btn btn-primary" style="font-size: 12px; padding: 6px 10px;">
+                                <span data-lang="zh">设置</span>
+                                <span data-lang="en">Setup</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+        <!-- 语音交互按钮 -->
+        <div class="voice-interaction" id="voiceInteraction">
+            <span class="icon">🎤</span>
+        </div>
+    
+        <!-- 语音交互面板 -->
+        <div class="voice-active" id="voiceActive">
+            <div class="close-voice" id="closeVoice">×</div>
+            <div class="voice-visualization" id="voiceVisualization">
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+            </div>
+            <div class="voice-text" id="voiceText">
+                <span data-lang="zh">我能如何帮助您？</span>
+                <span data-lang="en">How can I help you?</span>
+            </div>
+        </div>
+    
+        <!-- 情绪提醒 -->
+        <div class="emotion-alert" id="emotionAlert">
+            <span class="icon">⚠️</span>
+            <span id="alertMessage" data-lang="zh">检测到压力水平升高，建议进行呼吸练习</span>
+            <span id="alertMessageEn" data-lang="en">Stress level increase detected, breathing exercise recommended</span>
+        </div>
+    
+        <!-- 健康数据同步模态框 -->
+        <div class="modal" id="healthDataModal">
+            <div class="modal-content">
+                <div class="modal-title">
+                    <span data-lang="zh">健康数据同步</span>
+                    <span data-lang="en">Health Data Sync</span>
+                </div>
+                <div class="modal-text">
+                    <span data-lang="zh">您是否同意同步 Apple 健康 App 的数据？这将提升 Luminea 的效果，您也可以选择不同意。</span>
+                    <span data-lang="en">Would you like to sync data from Apple Health app? This will enhance Luminea's effectiveness, but you can also choose to decline.</span>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" id="declineHealthSync">
+                        <span data-lang="zh">不同意</span>
+                        <span data-lang="en">Decline</span>
+                    </button>
+                    <button class="btn btn-primary" id="acceptHealthSync">
+                        <span data-lang="zh">同意</span>
+                        <span data-lang="en">Accept</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    
+        <!-- 欢迎模态框 -->
+        <div class="modal show" id="welcomeModal">
+            <div class="modal-content">
+                <div class="modal-title">
+                    <span data-lang="zh">欢迎使用 Luminea</span>
+                    <span data-lang="en">Welcome to Luminea</span>
+                </div>
+                <div class="modal-text">
+                    <span data-lang="zh">Luminea 是一个 AI 驱动的情绪支持系统，结合智能手表和智能手机，通过实时生物识别数据和情感分析提供个性化的心理健康支持。</span>
+                    <span data-lang="en">Luminea is an AI-powered emotional support system that combines smartwatches and smartphones to provide personalized mental health support through real-time biometric data and emotional analysis.</span>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-primary" id="startExperience">
+                        <span data-lang="zh">开始体验</span>
+                        <span data-lang="en">Get Started</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    
+        <script>
+            // DOM元素
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.content');
+            const toggles = document.querySelectorAll('.toggle');
+            const timeOptions = document.querySelectorAll('.time-option');
+            const emotionStatusContainer = document.getElementById('emotionStatusContainer');
+            const emotionLevel = document.getElementById('emotionLevel');
+            const heartRateElement = document.getElementById('heartRate');
+            const sleepQualityElement = document.getElementById('sleepQuality');
+            const stressLevelElement = document.getElementById('stressLevel');
+            const emotionAlert = document.getElementById('emotionAlert');
+            const alertMessage = document.getElementById('alertMessage');
+            const alertMessageEn = document.getElementById('alertMessageEn');
+            const voiceInteraction = document.getElementById('voiceInteraction');
+            const voiceActive = document.getElementById('voiceActive');
+            const closeVoice = document.getElementById('closeVoice');
+            const voiceText = document.getElementById('voiceText');
+            const voiceVisualization = document.getElementById('voiceVisualization');
+            const breathingExercise = document.getElementById('breathingExercise');
+            const guidedMeditation = document.getElementById('guidedMeditation');
+            const breathingBackground = document.getElementById('breathingBackground');
+            const starryBackground = document.getElementById('starryBackground');
+            const languageSwitcher = document.getElementById('languageSwitcher');
+            const healthDataSync = document.getElementById('healthDataSync');
+            const healthDataModal = document.getElementById('healthDataModal');
+            const acceptHealthSync = document.getElementById('acceptHealthSync');
+            const declineHealthSync = document.getElementById('declineHealthSync');
+            const welcomeModal = document.getElementById('welcomeModal');
+            const startExperience = document.getElementById('startExperience');
+            const languageSelector = document.getElementById('languageSelector');
+            
+            // 情绪变量
+            let currentEmotionState = 'calm'; // calm, anxious, happy, sad
+            let emotionScore = 78;
+            let heartRate = 72;
+            let emotionTrendData = generateRandomData(7);
+            let currentLanguage = 'zh'; // 默认语言为中文
+            
+            // 创建星空背景
+            function createStarryBackground() {
+                const starCount = 150;
+                const shootingStarCount = 4;
+                
+                // 创建普通星星
+                for (let i = 0; i < starCount; i++) {
+                    const star = document.createElement('div');
+                    star.classList.add('star');
+                    
+                    // 随机大小和位置
+                    const size = Math.random() * 2 + 1;
+                    star.style.width = `${size}px`;
+                    star.style.height = `${size}px`;
+                    star.style.left = `${Math.random() * 100}%`;
+                    star.style.top = `${Math.random() * 100}%`;
+                    
+                    // 随机闪烁延迟
+                    star.style.animationDelay = `${Math.random() * 5}s`;
+                    
+                    starryBackground.appendChild(star);
+                }
+                
+                // 创建流星
+                for (let i = 0; i < shootingStarCount; i++) {
+                    const shootingStar = document.createElement('div');
+                    shootingStar.classList.add('shooting-star');
+                    
+                    // 随机位置
+                    shootingStar.style.left = `${Math.random() * 100}%`;
+                    shootingStar.style.top = `${Math.random() * 50}%`;
+                    
+                    // 随机延迟
+                    shootingStar.style.animationDelay = `${Math.random() * 10}s`;
+                    
+                    starryBackground.appendChild(shootingStar);
+                }
+            }
+            
+            // 界面主色调根据情绪状态动态调整
+            function updateColorTheme(emotionState) {
+                const root = document.documentElement;
+                
+                switch(emotionState) {
+                    case 'calm':
+                        root.style.setProperty('--primary-color', '#4a5dff');
+                        root.style.setProperty('--secondary-color', '#7b5dff');
+                        break;
+                    case 'anxious':
+                        root.style.setProperty('--primary-color', '#5c8df5'); // 冷蓝调
+                        root.style.setProperty('--secondary-color', '#4a7ae2');
+                        break;
+                    case 'happy':
+                        root.style.setProperty('--primary-color', '#f5cb5c'); // 暖黄调
+                        root.style.setProperty('--secondary-color', '#e5bb4d');
+                        break;
+                    case 'sad':
+                        root.style.setProperty('--primary-color', '#7a92e0');
+                        root.style.setProperty('--secondary-color', '#6a82d0');
+                        break;
+                }
+            }
+            
+            // 语言切换
+            function switchLanguage() {
+                const body = document.body;
+                if (currentLanguage === 'zh') {
+                    body.classList.add('lang-en');
+                    currentLanguage = 'en';
+                } else {
+                    body.classList.remove('lang-en');
+                    currentLanguage = 'zh';
+                }
+            }
+            
+            // 标签切换
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabId = tab.dataset.tab;
+                    
+                    // 更新标签状态
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    // 更新内容状态
+                    contents.forEach(content => content.classList.remove('active'));
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+            
+            // 切换按钮交互
+            toggles.forEach(toggle => {
+                toggle.addEventListener('click', () => {
+                    toggle.classList.toggle('active');
+                });
+            });
+            
+            // 时间选择器
+            timeOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    timeOptions.forEach(o => o.classList.remove('active'));
+                    option.classList.add('active');
+                    
+                    // 更新图表数据
+                    const period = option.dataset.period;
+                    let dataPoints;
+                    
+                    switch(period) {
+                        case 'day':
+                            dataPoints = 24;
+                            break;
+                        case 'week':
+                            dataPoints = 7;
+                            break;
+                        case 'month':
+                            dataPoints = 30;
+                            break;
+                    }
+                    
+                    emotionTrendData = generateRandomData(dataPoints);
+                    updateEmotionTrendChart();
+                });
+            });
+            
+            // 语言切换按钮
+            languageSwitcher.addEventListener('click', switchLanguage);
+            languageSelector.addEventListener('click', switchLanguage);
+            
+            // 健康数据同步
+            healthDataSync.addEventListener('click', () => {
+                healthDataModal.classList.add('show');
+            });
+            
+            acceptHealthSync.addEventListener('click', () => {
+                healthDataModal.classList.remove('show');
+                showAlert(
+                    "已同步 Apple 健康数据，提高情绪分析精准度", 
+                    "Apple Health data synced, improving emotion analysis accuracy"
+                );
+            });
+            
+            declineHealthSync.addEventListener('click', () => {
+                healthDataModal.classList.remove('show');
+            });
+            
+            // 欢迎模态框关闭
+            startExperience.addEventListener('click', () => {
+                welcomeModal.classList.remove('show');
+                
+                // 延迟显示健康数据同步弹窗
+                setTimeout(() => {
+                    healthDataModal.classList.add('show');
+                }, 2000);
+            });
+            
+            // 语音交互
+            voiceInteraction.addEventListener('click', () => {
+                voiceActive.classList.add('show');
+                animateVoiceBars();
+                
+                // 语音识别模拟
+                setTimeout(() => {
+                    if (currentLanguage === 'zh') {
+                        voiceText.innerHTML = '<span data-lang="zh">我听着呢...</span><span data-lang="en">I\'m listening...</span>';
+                    } else {
+                        voiceText.innerHTML = '<span data-lang="zh">我听着呢...</span><span data-lang="en">I\'m listening...</span>';
+                    }
+                    
+                    setTimeout(() => {
+                        // 模拟用户询问
+                        if (currentLanguage === 'zh') {
+                            voiceText.innerHTML = '<span data-lang="zh">已识别: 我今天感觉有点焦虑</span><span data-lang="en">Recognized: I\'m feeling a bit anxious today</span>';
+                        } else {
+                            voiceText.innerHTML = '<span data-lang="zh">已识别: 我今天感觉有点焦虑</span><span data-lang="en">Recognized: I\'m feeling a bit anxious today</span>';
+                        }
+                        
+                        setTimeout(() => {
+                            // 模拟AI回应
+                            if (currentLanguage === 'zh') {
+                                voiceText.innerHTML = '<span data-lang="zh">我注意到您的心率略高。建议您进行3分钟的呼吸练习，跟随屏幕上的呼吸引导节奏。</span><span data-lang="en">I notice your heart rate is slightly elevated. I suggest a 3-minute breathing exercise, following the breathing guide on the screen.</span>';
+                            } else {
+                                voiceText.innerHTML = '<span data-lang="zh">我注意到您的心率略高。建议您进行3分钟的呼吸练习，跟随屏幕上的呼吸引导节奏。</span><span data-lang="en">I notice your heart rate is slightly elevated. I suggest a 3-minute breathing exercise, following the breathing guide on the screen.</span>';
+                            }
+                            
+                            updateEmotionState('anxious');
+                            showAlert(
+                                "检测到焦虑情绪，已推荐呼吸练习", 
+                                "Anxiety detected, breathing exercise recommended"
+                            );
+                        }, 2000);
+                    }, 2000);
+                }, 1500);
+            });
+            
+            closeVoice.addEventListener('click', () => {
+                voiceActive.classList.remove('show');
+            });
+            
+            // 干预措施交互
+            breathingExercise.addEventListener('click', () => {
+                showAlert(
+                    "正在启动呼吸练习...", 
+                    "Starting breathing exercise..."
+                );
+                
+                setTimeout(() => {
+                    // 模拟呼吸练习效果
+                    animateBreathing();
+                    
+                    setTimeout(() => {
+                        updateEmotionState('calm');
+                        showAlert(
+                            "呼吸练习完成，情绪稳定性提升", 
+                            "Breathing exercise completed, emotional stability improved"
+                        );
+                    }, 15000);
+                }, 1000);
+            });
+            
+            guidedMeditation.addEventListener('click', () => {
+                showAlert(
+                    "正在启动引导冥想...", 
+                    "Starting guided meditation..."
+                );
+            });
+            
+            // 情绪状态更新
+            function updateEmotionState(state) {
+                currentEmotionState = state;
+                updateColorTheme(state);
+                
+                // 更新情绪显示
+                switch(state) {
+                    case 'calm':
+                        if (currentLanguage === 'zh') {
+                            emotionLevel.innerHTML = '<span data-lang="zh">平静</span><span data-lang="en">Calm</span>';
+                        } else {
+                            emotionLevel.innerHTML = '<span data-lang="zh">平静</span><span data-lang="en">Calm</span>';
+                        }
+                        emotionScore = Math.floor(Math.random() * 15) + 75;
+                        document.getElementById('emotionScore').textContent = emotionScore;
+                        emotionStatusContainer.style.backgroundColor = 'rgba(74, 93, 255, 0.1)';
+                        break;
+                    case 'anxious':
+                        if (currentLanguage === 'zh') {
+                            emotionLevel.innerHTML = '<span data-lang="zh">焦虑</span><span data-lang="en">Anxious</span>';
+                        } else {
+                            emotionLevel.innerHTML = '<span data-lang="zh">焦虑</span><span data-lang="en">Anxious</span>';
+                        }
+                        emotionScore = Math.floor(Math.random() * 20) + 40;
+                        document.getElementById('emotionScore').textContent = emotionScore;
+                        emotionStatusContainer.style.backgroundColor = 'rgba(92, 141, 245, 0.1)';
+                        
+                        // 更新生物指标
+                        heartRate = Math.floor(Math.random() * 15) + 85;
+                        heartRateElement.textContent = heartRate;
+                        if (currentLanguage === 'zh') {
+                            stressLevelElement.innerHTML = '<span data-lang="zh">高</span><span data-lang="en">High</span>';
+                        } else {
+                            stressLevelElement.innerHTML = '<span data-lang="zh">高</span><span data-lang="en">High</span>';
+                        }
+                        break;
+                    case 'happy':
+                        if (currentLanguage === 'zh') {
+                            emotionLevel.innerHTML = '<span data-lang="zh">愉悦</span><span data-lang="en">Happy</span>';
+                        } else {
+                            emotionLevel.innerHTML = '<span data-lang="zh">愉悦</span><span data-lang="en">Happy</span>';
+                        }
+                        emotionScore = Math.floor(Math.random() * 10) + 85;
+                        document.getElementById('emotionScore').textContent = emotionScore;
+                        emotionStatusContainer.style.backgroundColor = 'rgba(245, 203, 92, 0.1)';
+                        break;
+                    case 'sad':
+                        if (currentLanguage === 'zh') {
+                            emotionLevel.innerHTML = '<span data-lang="zh">低落</span><span data-lang="en">Sad</span>';
+                        } else {
+                            emotionLevel.innerHTML = '<span data-lang="zh">低落</span><span data-lang="en">Sad</span>';
+                        }
+                        emotionScore = Math.floor(Math.random() * 15) + 45;
+                        document.getElementById('emotionScore').textContent = emotionScore;
+                        emotionStatusContainer.style.backgroundColor = 'rgba(122, 146, 224, 0.1)';
+                        break;
+                }
+                
+                // 更新情绪星云
+                updateEmotionCloud();
+            }
+            
+            // 显示提醒
+            function showAlert(zhMessage, enMessage) {
+                alertMessage.textContent = zhMessage;
+                alertMessageEn.textContent = enMessage;
+                emotionAlert.classList.add('show');
+                
+                // 触发震动（如果浏览器支持）
+                if ('vibrate' in navigator) {
+                    navigator.vibrate([200, 100, 200]);
+                }
+                
+                setTimeout(() => {
+                    emotionAlert.classList.remove('show');
+                }, 4000);
+            }
+            
+            // 动画语音条
+            function animateVoiceBars() {
+                const bars = voiceVisualization.querySelectorAll('.voice-bar');
+                
+                bars.forEach(bar => {
+                    // 创建随机动画
+                    setInterval(() => {
+                        const height = Math.floor(Math.random() * 40) + 5; // 5px到45px
+                        bar.style.height = `${height}px`;
+                    }, 200);
+                });
+            }
+            
+            // 呼吸动画
+            function animateBreathing() {
+                let scale = 1;
+                const maxScale = 1.2;
+                let growing = true;
+                const duration = 4000; // 4秒一个周期
+                
+                // 创建呼吸动画效果
+                const interval = setInterval(() => {
+                    if (growing) {
+                        scale += 0.01;
+                        if (scale >= maxScale) {
+                            growing = false;
+                        }
+                    } else {
+                        scale -= 0.01;
+                        if (scale <= 1) {
+                            growing = true;
+                        }
+                    }
+                    
+                    breathingBackground.innerHTML = '';
+                    createBreathingEffect(scale);
+                }, 50);
+                
+                // 15秒后停止动画
+                setTimeout(() => {
+                    clearInterval(interval);
+                }, 15000);
+            }
+            
+            // 创建呼吸效果背景
+            function createBreathingEffect(scale) {
+                const circle = document.createElement('div');
+                circle.classList.add('breathing-circle');
+                circle.style.width = `${300 * scale}px`;
+                circle.style.height = `${300 * scale}px`;
+                circle.style.top = '50%';
+                circle.style.left = '50%';
+                circle.style.transform = `translate(-50%, -50%) scale(${scale})`;
+                
+                breathingBackground.appendChild(circle);
+            }
+            
+            // 情绪趋势图表
+            function updateEmotionTrendChart() {
+                const chartCanvas = document.getElementById('emotionTrendChart');
+                const ctx = chartCanvas.getContext('2d');
+                
+                // 清除画布
+                ctx.clearRect(0, 0, chartCanvas.width, chartCanvas.height);
+                
+                // 设置画布大小
+                chartCanvas.width = chartCanvas.parentElement.offsetWidth;
+                chartCanvas.height = chartCanvas.parentElement.offsetHeight;
+                
+                // 绘制图表
+                const padding = 30;
+                const chartWidth = chartCanvas.width - (padding * 2);
+                const chartHeight = chartCanvas.height - (padding * 2);
+                
+                // 绘制轴线
+                ctx.beginPath();
+                ctx.moveTo(padding, padding);
+                ctx.lineTo(padding, chartHeight + padding);
+                ctx.lineTo(chartWidth + padding, chartHeight + padding);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.stroke();
+                
+                // 绘制数据线
+                const pointSpacing = chartWidth / (emotionTrendData.length - 1);
+                
+                ctx.beginPath();
+                ctx.moveTo(padding, chartHeight + padding - (emotionTrendData[0] / 100 * chartHeight));
+                
+                for (let i = 1; i < emotionTrendData.length; i++) {
+                    const x = padding + (i * pointSpacing);
+                    const y = chartHeight + padding - (emotionTrendData[i] / 100 * chartHeight);
+                    ctx.lineTo(x, y);
+                }
+                
+                // 渐变
+                const gradient = ctx.createLinearGradient(0, 0, 0, chartHeight);
+                gradient.addColorStop(0, 'rgba(74, 93, 255, 1)');
+                gradient.addColorStop(1, 'rgba(123, 93, 255, 0.6)');
+                
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                
+                // 填充区域
+                ctx.lineTo(padding + (emotionTrendData.length - 1) * pointSpacing, chartHeight + padding);
+                ctx.lineTo(padding, chartHeight + padding);
+                ctx.fillStyle = 'rgba(74, 93, 255, 0.1)';
+                ctx.fill();
+                
+                // 绘制数据点
+                for (let i = 0; i < emotionTrendData.length; i++) {
+                    const x = padding + (i * pointSpacing);
+                    const y = chartHeight + padding - (emotionTrendData[i] / 100 * chartHeight);
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.fill();
+                    
+                    ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.fill();
+                
+                ctx.beginPath();
+                ctx.arc(x, y, 6, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(123, 93, 255, 0.4)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        }
+        
+        // 生成随机数据
+        function generateRandomData(length) {
+            const data = [];
+            for (let i = 0; i < length; i++) {
+                data.push(Math.floor(Math.random() * 40) + 40); // 40-80的随机数
+            }
+            return data;
+        }
+        
+        // 情绪星云可视化
+        function initEmotionCloud() {
+            const canvas = document.getElementById('emotionCloudCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 设置画布大小
+            canvas.width = canvas.parentElement.offsetWidth;
+            canvas.height = canvas.parentElement.offsetHeight;
+            
+            // 粒子系统
+            const particles = [];
+            const particleCount = 150;
+            
+            // 创建粒子
+            for (let i = 0; i < particleCount; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 3 + 1,
+                    color: getComputedStyle(document.documentElement).getPropertyValue('--primary-color'),
+                    speedX: (Math.random() - 0.5) * 0.7,
+                    speedY: (Math.random() - 0.5) * 0.7,
+                    opacity: Math.random() * 0.5 + 0.2
+                });
+            }
+            
+            // 动画循环
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // 更新和绘制粒子
+                particles.forEach(particle => {
+                    // 更新位置
+                    particle.x += particle.speedX;
+                    particle.y += particle.speedY;
+                    
+                    // 边界检查
+                    if (particle.x < 0 || particle.x > canvas.width) {
+                        particle.speedX *= -1;
+                    }
+                    
+                    if (particle.y < 0 || particle.y > canvas.height) {
+                        particle.speedY *= -1;
+                    }
+                    
+                    // 绘制粒子
+                    ctx.beginPath();
+                    ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = particle.color;
+                    ctx.globalAlpha = particle.opacity;
+                    ctx.fill();
+                });
+                
+                ctx.globalAlpha = 1;
+                
+                // 绘制粒子之间的连线
+                particles.forEach((particle, index) => {
+                    for (let j = index + 1; j < particles.length; j++) {
+                        const dx = particle.x - particles[j].x;
+                        const dy = particle.y - particles[j].y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance < 70) {
+                            ctx.beginPath();
+                            ctx.moveTo(particle.x, particle.y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.strokeStyle = particle.color;
+                            ctx.globalAlpha = 0.1 * (1 - distance / 70);
+                            ctx.stroke();
+                        }
+                    }
+                });
+                
+                ctx.globalAlpha = 1;
+            }
+            
+            animate();
+        }
+        
+        // 更新情绪星云颜色和动画
+        function updateEmotionCloud() {
+            const canvas = document.getElementById('emotionCloudCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 获取当前主色调
+            const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color');
+            
+            // 更新粒子颜色
+            const particles = [];
+            const particleCount = 150;
+            
+            for (let i = 0; i < particleCount; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 3 + 1,
+                    color: primaryColor,
+                    speedX: (Math.random() - 0.5) * 0.7,
+                    speedY: (Math.random() - 0.5) * 0.7,
+                    opacity: Math.random() * 0.5 + 0.2
+                });
+            }
+        }
+        
+        // 主动情绪监测和干预
+        function initEmotionMonitoring() {
+            // 模拟情绪波动
+            setInterval(() => {
+                // 随机情绪变化
+                const rand = Math.random();
+                let newState;
+                
+                if (rand < 0.7) {
+                    // 70%的概率保持当前状态
+                    newState = currentEmotionState;
+                } else if (rand < 0.8) {
+                    newState = 'anxious';
+                } else if (rand < 0.9) {
+                    newState = 'happy';
+                } else {
+                    newState = 'sad';
+                }
+                
+                // 如果状态改变且是焦虑状态，触发提醒
+                if (newState !== currentEmotionState && newState === 'anxious') {
+                    updateEmotionState(newState);
+                    
+                    setTimeout(() => {
+                        showAlert(
+                            "检测到压力水平升高，建议进行呼吸练习",
+                            "Stress level increase detected, breathing exercise recommended"
+                        );
+                        
+                        // 如果启用了自动干预，自动开始呼吸练习
+                        if (document.getElementById('autoInterventionToggle').classList.contains('active')) {
+                            setTimeout(() => {
+                                animateBreathing();
+                                
+                                setTimeout(() => {
+                                    updateEmotionState('calm');
+                                    showAlert(
+                                        "呼吸练习完成，情绪稳定性提升",
+                                        "Breathing exercise completed, emotional stability improved"
+                                    );
+                                }, 15000);
+                            }, 2000);
+                        }
+                    }, 1000);
+                }
+            }, 30000); // 每30秒检测一次
+            
+            // 模拟生物识别数据更新
+            setInterval(() => {
+                // 更新心率
+                const variation = Math.floor(Math.random() * 3) - 1; // -1, 0, 或 1
+                heartRate += variation;
+                
+                // 保持在合理范围内
+                if (heartRate < 60) heartRate = 60;
+                if (heartRate > 100) heartRate = 100;
+                
+                heartRateElement.textContent = heartRate;
+                
+                // 随机更新睡眠质量
+                if (Math.random() < 0.05) { // 5%的概率
+                    const sleepQuality = Math.floor(Math.random() * 20) + 70;
+                    sleepQualityElement.textContent = `${sleepQuality}%`;
+                }
+            }, 5000); // 每5秒更新一次
+        }
+        
+        // 页面加载完成后初始化
+        window.addEventListener('load', () => {
+            // 创建星空背景
+            createStarryBackground();
+            
+            // 初始化情绪星云
+            initEmotionCloud();
+            
+            // 初始化情绪趋势图表
+            updateEmotionTrendChart();
+            
+            // 初始化情绪监测
+            initEmotionMonitoring();
+            
+            // 创建呼吸背景效果
+            createBreathingEffect(1);
+            
+            // 初始化UI状态
+            updateColorTheme(currentEmotionState);
+        });
+        
+        // 窗口调整时更新画布大小
+        window.addEventListener('resize', () => {
+            // 更新情绪星云
+            const canvas = document.getElementById('emotionCloudCanvas');
+            canvas.width = canvas.parentElement.offsetWidth;
+            canvas.height = canvas.parentElement.offsetHeight;
+            
+            // 更新情绪趋势图表
+            updateEmotionTrendChart();
+        });
+    </script>
+</body>
+</html>
